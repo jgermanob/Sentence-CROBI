@@ -72,14 +72,14 @@ def build_Sentence_CROBI_model(pooling_strategy='mean', classes=2, crossencoder_
     right_token_type_ids = Input(shape=(35,), name='right_token_type_ids', dtype=tf.int32)
     
     # Definición de la arquitectura #
-    roberta = TFRobertaModel.from_pretrained(crossencoder_checkpoint,
+    cross_encoder = TFRobertaModel.from_pretrained(crossencoder_checkpoint,
                                        output_attentions = False, 
                                        output_hidden_states = False,
                                        return_dict=True,
                                        use_cache=True,
                                        name='cross_encoder')
 
-    siamese_bert = TFBertModel.from_pretrained(biencoder_checkpoint,
+    bi_encoder = TFBertModel.from_pretrained(biencoder_checkpoint,
                                        output_attentions = False, 
                                        output_hidden_states = False,
                                        return_dict=True,
@@ -95,14 +95,14 @@ def build_Sentence_CROBI_model(pooling_strategy='mean', classes=2, crossencoder_
     classifier = Roberta_classifier(classes=classes)
 
     # Forward pass #
-    s_token = roberta(input_id, attention_mask=attention_mask, token_type_ids=token_type_ids)[0]
+    s_token = cross_encoder(input_id, attention_mask=attention_mask, token_type_ids=token_type_ids)[0]
     s_token = s_token[:,0,:]
     s_token = layers.Dropout(0.3)(s_token)
 
-    left_output = siamese_bert(left_input_id, attention_mask=left_attention_mask, token_type_ids=left_token_type_ids)[0]
+    left_output = bi_encoder(left_input_id, attention_mask=left_attention_mask, token_type_ids=left_token_type_ids)[0]
     left_vector = pooling([left_output, left_attention_mask])
 
-    right_output = siamese_bert(right_input_id, attention_mask=right_attention_mask, token_type_ids=right_token_type_ids)[0]
+    right_output = bi_encoder(right_input_id, attention_mask=right_attention_mask, token_type_ids=right_token_type_ids)[0]
     right_vector = pooling([right_output, right_attention_mask])
 
     semantic_vector = layers.Concatenate(name='concatenate_siamese_output')([left_vector, right_vector])
